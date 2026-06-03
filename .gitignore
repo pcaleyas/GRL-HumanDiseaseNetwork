@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Carpetas info
+1Eugenio Aguirre/
+2Pablo Mesejo/
+3Jose Zurita/
+4Igor Zwir/
+5Carlos Cano/
+
+# Ignorar archivos de datos
+*.csv
+*.edgelist
+*.labels
+
+# Ignorar scripts de Python
+*.py
