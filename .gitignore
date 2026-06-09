@@ -21,5 +21,3 @@ wheels/
 *.edgelist
 *.labels
 
-# Ignorar scripts de Python
-*.py

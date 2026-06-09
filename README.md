@@ -15,9 +15,9 @@ El desarrollo del proyecto está completamente documentado y ejecutable en:
 
 *   **`GRLredes.ipynb`**: Notebook principal con la implementación, experimentos de entrenamiento de embeddings, optimización de hiperparámetros de clustering y clasificación, análisis crítico y conclusiones.
 *   **`img/`**: Directorio de recursos visuales generados a partir de los análisis:
-    *   `random_walk_clasico.png`: Proyección t-SNE de embeddings clásicos.
-    *   `2ndOrderRW_SesgohaciaDFS.png`: Proyección UMAP de embeddings sesgados a profundidad (DFS).
-    *   `2ndOrderRW_SesgohaciaBFS.png`: Proyección PCA de embeddings sesgados a anchura (BFS).
+    *   `exp1_tsne.png`: Proyección t-SNE de embeddings clásicos.
+    *   `exp2_umap.png`: Proyección UMAP de embeddings sesgados a profundidad (DFS).
+    *   `exp3_pca.png`: Proyección PCA de embeddings sesgados a anchura (BFS).
     *   `kmeans_silhouute_NMI.png`: Curvas de evolución de Silhouette e índice NMI para K-Means y HC.
     *   `dendongrama_jerarquico.png`: Dendrograma del agrupamiento jerárquico Ward.
     *   `dbscan_clusteres_NMI.png`: Búsqueda de rejilla de DBSCAN (NMI y número de clústeres frente a $\epsilon$).
@@ -50,7 +50,7 @@ Para evaluar si el espacio latente retiene la estructura comunitaria biológica,
 
 | **1st Order RW (Classic)** | **2nd Order RW (DFS Bias)** | **2nd Order RW (BFS Bias)** |
 | :---: | :---: | :---: |
-| ![Classic t-SNE](img/random_walk_clasico.png) | ![DFS Bias UMAP](img/2ndOrderRW_SesgohaciaDFS.png) | ![BFS Bias PCA](img/2ndOrderRW_SesgohaciaBFS.png) |
+| ![Classic t-SNE](img/exp1_tsne.png) | ![DFS Bias UMAP](img/exp2_umap.png) | ![BFS Bias PCA](img/exp3_pca.png) |
 | *Visualización con t-SNE ($p=1.0, q=1.0$)* | *Visualización con UMAP ($p=1.0, q=0.5$)* | *Visualización con PCA ($p=0.5, q=2.0$)* |
 
 *   **Conclusión Visual:** El sesgo **DFS** visualizado con **UMAP** produce los clústeres más compactos y biológicamente diferenciados. Por el contrario, la equivalencia estructural (**BFS**) proyectada con **PCA** mezcla las categorías, lo que demuestra que PCA (lineal) y la métrica BFS no están alineadas con la segmentación visual directa de clases de enfermedades.
@@ -83,9 +83,13 @@ Se evaluó la capacidad de reconstruir las clases de enfermedades reales utiliza
 | ![DBSCAN Metrics](img/dbscan_clusteres_NMI.png) |
 | *NMI y número de clústeres frente a epsilon ($\epsilon$)* |
 
-*   **Importancia de la distancia del Coseno:** En espacios de alta dimensionalidad (64D), la similitud del Coseno supera consistentemente a la Euclídea debido a la *maldición de la dimensionalidad*. El Clustering Jerárquico y DBSCAN con Coseno obtuvieron un Silhouette superior.
-*   **Comportamiento de DBSCAN:** Logra un Silhouette óptimo (0.5567) al aislar eficazmente "enfermedades huérfanas" y periféricas como ruido (puntos marcados con `-1`) sin forzarlas a integrarse en clústeres artificiales.
-*   **Dendrograma Ward:** Refleja con precisión las **taxonomías anidadas** intrínsecas en la medicina clínica (macro-categorías que engloban patologías muy específicas).
+#### Discusión de los resultados de Clustering
+
+Los resultados obtenidos a partir de la aplicación de K-Means, Clustering Jerárquico y DBSCAN sobre las distintas representaciones latentes de la red revelan diferencias importantes según la métrica de distancia y la topología subyacente. En primer lugar, se observa que los métodos basados en la similitud del coseno (empleados en el agrupamiento jerárquico y DBSCAN) tienden a proporcionar agrupaciones más coherentes que aquellos basados en la distancia euclídea (K-Means). Este comportamiento es esperable en espacios latentes de alta dimensionalidad (64 dimensiones), donde la magnitud de los vectores pierde relevancia frente a la similitud angular para capturar la afinidad estructural entre nodos.
+
+Respecto a la estrategia de exploración, el sesgo en profundidad (DFS) tiende a agrupar nodos de la misma vecindad local, promoviendo la homofilia y generando clústeres visualmente más compactos. Sin embargo, al incrementar la granularidad de la partición (por ejemplo, con $K=95$), la representación basada en anchura (BFS) alcanza valores competitivos en métricas de validación externa como el NMI. Esto indica que, a un nivel de segmentación más fino, la equivalencia estructural de los nodos —es decir, su rol topológico en la red, como cuellos de botella o *hubs* genéticos— presenta una alta correlación con subcategorías clínicas específicas.
+
+Por último, al evaluar el comportamiento individual de los algoritmos, el Clustering Jerárquico destaca como un modelo equilibrado que refleja de forma natural las taxonomías médicas mediante su jerarquía anidada. DBSCAN, por su parte, consigue aislar nodos periféricos gracias a su enfoque basado en densidad, lo que resulta especialmente útil en este dominio para identificar enfermedades atípicas sin forzar su inclusión en clústeres mayores. En contraste, K-Means asume clústeres de forma esférica y tamaño similar, una restricción geométrica que limita su capacidad para adaptarse a las distribuciones irregulares propias de esta red biomédica.
 
 ---
 
@@ -122,15 +126,13 @@ El siguiente heatmap ilustra la interacción entre la estrategia de embedding y 
   <em>Rendimiento (Macro F1-Score) por Modelo y Estrategia de Embedding</em>
 </p>
 
-#### ⚖️ El Impacto del Desbalanceo y Evaluación con SMOTE
-El dataset presenta un **Imbalance Ratio (IR) crítico de 29.33** (clases con cientos de enfermedades y clases minoritarias con menos de 10 muestras). Esto explica la brecha sustancial entre el *Weighted F1* (~0.55) y el *Macro F1* (~0.44), ya que las clases mayoritarias inflan el rendimiento promedio ponderado.
+#### Discusión de los resultados de Clasificación
 
-Para abordar esto, se integró la técnica de sobremuestreo **SMOTE** dentro del pipeline de validación cruzada (previniendo *Data Leakage*) para expandir sintéticamente las clases minoritarias sobre el mejor escenario: **Random Forest + Concat**.
+El análisis de los clasificadores entrenados sobre los distintos *embeddings* de la Red de Enfermedades Humanas pone de manifiesto la complementariedad de las estrategias de muestreo. El modelo entrenado sobre la representación concatenada, que combina la información de vecindad de DFS con la información estructural de BFS, obtiene el mejor rendimiento global (alcanzando un Macro F1 de 0.4467 con Random Forest). Esto sugiere que la predicción de la categoría clínica de una enfermedad se optimiza al considerar simultáneamente la comunidad genética a la que pertenece el nodo y su función topológica en el esquema global.
 
-*   **Comparativa Directa (Con vs. Sin SMOTE):**
-    *   **Macro F1 (Baseline):** **0.4467** $\rightarrow$ **Con SMOTE:** **0.4270** (Caída del **-4.4%**)
-    *   **Balanced Accuracy (Baseline):** **0.4498** $\rightarrow$ **Con SMOTE:** **0.4355** (Caída del **-3.2%**)
-*   **Conclusión Crítica:** La aplicación de SMOTE en este espacio latente concatenado de 128 dimensiones resultó contraproducente. La interpolación lineal sintética introdujo ruido y solapamiento entre fronteras de decisión de patologías complejas, desdibujando la topología de la red. Por lo tanto, el modelo RandomForest entrenado sobre los embeddings originales sin sobremuestreo se consolida como la estrategia más robusta.
+Al analizar las representaciones de forma aislada, se observa que el sesgo en profundidad (DFS) ofrece un poder predictivo sistemáticamente superior al sesgo en anchura (BFS) en los modelos basados en árboles (Macro F1 de 0.441 frente a 0.422). Por lo tanto, la homofilia o cercanía local en la red resulta ser una característica más discriminativa que la equivalencia estructural para la clasificación directa. Adicionalmente, la selección de características explícita no produce mejoras significativas en el rendimiento de Random Forest, un comportamiento consistente con la capacidad inherente del algoritmo para descartar variables poco informativas mediante la selección de cortes en los nodos de decisión. 
+
+El clasificador SVM, sin embargo, muestra un comportamiento distinto, logrando su mejor precisión balanceada (*Balanced Accuracy* de 0.4511) sobre los *embeddings* generados por BFS. Este hecho apunta a que las proyecciones basadas en equivalencia estructural generan un espacio latente donde las fronteras de decisión entre ciertas minorías de clases resultan geométricamente más separables a través de hiperplanos. Finalmente, la introducción de técnicas de sobremuestreo sintético (SMOTE) para paliar el desbalance de clases no logra los efectos deseados, traduciéndose en una caída del Macro F1 hasta 0.4270. En este contexto de representaciones latentes, la interpolación espacial de muestras minoritarias parece introducir ruido geométrico y difuminar las fronteras reales entre clases, confirmando que la evaluación del modelo sobre los *embeddings* originales constituye la alternativa metodológica más robusta.
 
 ---
 
